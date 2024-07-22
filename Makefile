@@ -14,7 +14,7 @@ bin/fiotuf-linux-amd64:
 bin/fiotuf-linux-armv7:
 bin/fiotuf-linux-arm:
 bin/fiotuf-%: FORCE
-	CGO_ENABLED=1 \
+	CGO_ENABLED=0 \
 	GOOS=$(shell echo $* | cut -f1 -d\- ) \
 	GOARCH=$(shell echo $* | cut -f2 -d\-) \
 		go build -o $@ main.go

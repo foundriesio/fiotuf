@@ -10,8 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-
-	"github.com/ThalesIgnite/crypto11"
 )
 
 const onChangedForceExit = 123
@@ -65,55 +63,56 @@ func idToBytes(id string) []byte {
 }
 
 func createClientPkcs11(sota *AppConfig) (*http.Client, CryptoHandler) {
-	module := sota.GetOrDie("p11.module")
-	pin := sota.GetOrDie("p11.pass")
-	pkeyId := sota.GetOrDie("p11.tls_pkey_id")
-	certId := sota.GetOrDie("p11.tls_clientcert_id")
-	caFile := sota.GetOrDie("import.tls_cacert_path")
+	return nil, nil
+	// module := sota.GetOrDie("p11.module")
+	// pin := sota.GetOrDie("p11.pass")
+	// pkeyId := sota.GetOrDie("p11.tls_pkey_id")
+	// certId := sota.GetOrDie("p11.tls_clientcert_id")
+	// caFile := sota.GetOrDie("import.tls_cacert_path")
 
-	cfg := crypto11.Config{
-		Path:        module,
-		TokenLabel:  sota.GetDefault("p11.label", "aktualizr"),
-		Pin:         pin,
-		MaxSessions: 2,
-	}
+	// cfg := crypto11.Config{
+	// 	Path:        module,
+	// 	TokenLabel:  sota.GetDefault("p11.label", "aktualizr"),
+	// 	Pin:         pin,
+	// 	MaxSessions: 2,
+	// }
 
-	ctx, err := crypto11.Configure(&cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// ctx, err := crypto11.Configure(&cfg)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	privKey, err := ctx.FindKeyPair(idToBytes(pkeyId), nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	cert, err := ctx.FindCertificate(idToBytes(certId), nil, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if cert == nil || privKey == nil {
-		log.Fatal("Unable to load pkcs11 client cert and/or private key")
-	}
+	// privKey, err := ctx.FindKeyPair(idToBytes(pkeyId), nil)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// cert, err := ctx.FindCertificate(idToBytes(certId), nil, nil)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// if cert == nil || privKey == nil {
+	// 	log.Fatal("Unable to load pkcs11 client cert and/or private key")
+	// }
 
-	caCert, err := os.ReadFile(caFile)
-	if err != nil {
-		log.Fatal(err)
-	}
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
+	// caCert, err := os.ReadFile(caFile)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// caCertPool := x509.NewCertPool()
+	// caCertPool.AppendCertsFromPEM(caCert)
 
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{
-			{
-				Certificate: [][]byte{cert.Raw},
-				PrivateKey:  privKey,
-			},
-		},
-		RootCAs: caCertPool,
-	}
-	transport := &http.Transport{TLSClientConfig: tlsConfig}
-	client := &http.Client{Timeout: time.Second * 30, Transport: transport}
-	return client, nil
+	// tlsConfig := &tls.Config{
+	// 	Certificates: []tls.Certificate{
+	// 		{
+	// 			Certificate: [][]byte{cert.Raw},
+	// 			PrivateKey:  privKey,
+	// 		},
+	// 	},
+	// 	RootCAs: caCertPool,
+	// }
+	// transport := &http.Transport{TLSClientConfig: tlsConfig}
+	// client := &http.Client{Timeout: time.Second * 30, Transport: transport}
+	// return client, nil
 }
 
 func createClientLocal(sota *AppConfig) (*http.Client, CryptoHandler) {
