@@ -3,11 +3,9 @@ module github.com/detsch/fiotuf
 go 1.22
 
 require (
-	github.com/ThalesIgnite/crypto11 v1.2.5
 	github.com/detsch/go-tuf/v2 v2.0.0-20240719185448-97b7f38b7031
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-logr/stdr v1.2.2
-	github.com/godbus/dbus/v5 v5.1.0
 	github.com/pelletier/go-toml v1.9.3
 	github.com/urfave/cli/v2 v2.27.2
 )
@@ -32,16 +30,13 @@ require (
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/letsencrypt/boulder v0.0.0-20230907030200-6d76a0f91e1e // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/miekg/pkcs11 v1.1.1 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.8.0 // indirect
 	github.com/sigstore/sigstore v1.8.3 // indirect
-	github.com/thales-e-security/pool v0.0.2 // indirect
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
