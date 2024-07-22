@@ -60,6 +60,7 @@ func main() {
 				},
 			},
 		},
+		DefaultCommand: "tuf-agent",
 	}
 
 	err := app.Run(os.Args)
