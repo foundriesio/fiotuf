@@ -45,7 +45,7 @@ func main() {
 		},
 		Commands: []*cli.Command{
 			{
-				Name:  "tuf-agent",
+				Name:  "start-agent",
 				Usage: "Start TUF client agent",
 				Action: func(c *cli.Context) error {
 					return tufAgent(c)
@@ -60,7 +60,7 @@ func main() {
 				},
 			},
 		},
-		DefaultCommand: "tuf-agent",
+		DefaultCommand: "start-agent",
 	}
 
 	err := app.Run(os.Args)
