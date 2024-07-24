@@ -30,7 +30,7 @@ type FioFetcher struct {
 }
 
 func readLocalFile(filePath string) ([]byte, error) {
-	fmt.Println("Read local file: " + filePath)
+	log.Println("Reading local file:", filePath)
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, &metadata.ErrDownloadHTTP{StatusCode: 404, URL: "file://" + filePath}
@@ -39,9 +39,8 @@ func readLocalFile(filePath string) ([]byte, error) {
 }
 
 func readRemoteFile(d *FioFetcher, urlPath string, maxLength int64) ([]byte, error) {
-	fmt.Println("Read remote file: " + urlPath)
+	log.Println("Fetching remote file: " + urlPath)
 	headers := make(map[string]string)
-	fmt.Println("Setting x-ats-tags=" + d.tag)
 	headers["x-ats-tags"] = d.tag
 	res, err := httpGet(d.client, urlPath, headers)
 
@@ -52,8 +51,6 @@ func readRemoteFile(d *FioFetcher, urlPath string, maxLength int64) ([]byte, err
 	if res.StatusCode != http.StatusOK {
 		return nil, &metadata.ErrDownloadHTTP{StatusCode: res.StatusCode, URL: urlPath}
 	}
-
-	fmt.Println("GET RESULT=" + string(res.Body))
 
 	var length int64
 	// Get content length from header (might not be accurate, -1 or not set).
@@ -127,6 +124,12 @@ var (
 )
 
 func refreshTuf(client *http.Client, repoUrl string, tag string) error {
+	if repoUrl == "" {
+		log.Println("Refreshing TUF metadata from device gateway")
+	} else {
+		log.Println("Refreshing TUF metadata from", repoUrl)
+	}
+
 	cfg, err := getTufCfg(client, repoUrl, tag)
 	if err != nil {
 		log.Println("failed to create Config instance: %w", err)
@@ -149,18 +152,18 @@ func refreshTuf(client *http.Client, repoUrl string, tag string) error {
 		log.Println("failed to refresh trusted metadata: %w", err)
 		return err
 	}
-	for name := range up.GetTopLevelTargets() {
-		log.Println("target name " + name)
-	}
+	log.Println("TUF refresh successful")
+	// for name := range up.GetTopLevelTargets() {
+	// 	log.Println("target name " + name)
+	// }
 	return nil
 }
 
 func (a *App) refreshTufApp(client *http.Client, localRepoPath string) error {
-	metadata.SetLogger(stdr.New(stdlog.New(os.Stdout, "fioconfig", stdlog.LstdFlags)))
+	metadata.SetLogger(stdr.New(stdlog.New(os.Stdout, "", stdlog.LstdFlags)))
 	fioClient = client
 	var repoUrl string
 	tag := a.sota.Get("pacman.tags")
-	fmt.Println("refreshTufApp tag=" + tag)
 	if localRepoPath == "" {
 		repoUrl = strings.Replace(a.configUrl, "/config", "/repo", -1)
 	} else {
@@ -210,23 +213,23 @@ func (f tufError) Error() string {
 }
 
 func refreshTufHttp(c *gin.Context) {
-	log.Println("UpdateTargets BEGIN localTufRepo=" + c.Query("localTufRepo"))
 	err := globalApp.refreshTufApp(fioClient, c.Query("localTufRepo"))
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, tufError{fmt.Sprintf("failed to create Config instance: %w", err)})
 	}
 	c.Done()
-	log.Println("UpdateTargets END")
 }
 
 func startHttpServer() {
+	// TODO: make port configurable
+	port := 9080
 	router := gin.Default()
+	router.SetTrustedProxies([]string{"127.0.0.1"})
 	router.GET("/targets", getTargetsHttp)
 	router.GET("/root", getRootHttp)
 	router.POST("/targets/update/", refreshTufHttp)
-	fmt.Println("Starting test http server at port 9080")
-	router.Run("localhost:9080")
-	fmt.Println("Exit from port 9080")
+	log.Println("Starting TUF agent http server at port", port)
+	router.Run(":" + strconv.Itoa(port))
 }
 
 func (a *App) StartTufAgent() error {
