@@ -3,7 +3,7 @@ COMMIT:=$(shell git log -1 --pretty=format:%h)$(shell git diff --quiet || echo '
 # Use linker flags to provide commit info
 LDFLAGS=-ldflags "-X=github.com/foundriesio/fiotuf/internal.Commit=$(COMMIT)"
 
-TARGETS=bin/fiotuf-linux-amd64 bin/fiotuf-linux-armv7 bin/fiotuf-linux-arm
+TARGETS=bin/fiotuf-linux-amd64 bin/fiotuf-linux-arm
 
 linter:=$(shell which golangci-lint 2>/dev/null || echo $(HOME)/go/bin/golangci-lint)
 
