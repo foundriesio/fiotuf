@@ -190,18 +190,18 @@ func DieNotNil(err error, message ...string) {
 }
 
 func getTargetsHttp(c *gin.Context) {
-	ret := []string{}
+	// ret := []string{}
 	targets := fioUpdater.GetTopLevelTargets()
-	for name, _ := range targets {
-		t, _ := targets[name].MarshalJSON()
-		ret = append(ret, string(t))
-	}
-
+	// for name := range targets {
+	// 	t, _ := targets[name].MarshalJSON()
+	// 	ret = append(ret, string(t))
+	// }
 	c.IndentedJSON(http.StatusOK, targets)
 }
 
 func getRootHttp(c *gin.Context) {
-	c.IndentedJSON(http.StatusOK, fioUpdater.GetTrustedMetadataSet().Root)
+	c.JSON(http.StatusOK, fioUpdater.GetTrustedMetadataSet().Root)
+	// c.IndentedJSON(http.StatusOK, fioUpdater.GetTrustedMetadataSet().Root)
 }
 
 type tufError struct {
@@ -215,7 +215,11 @@ func (f tufError) Error() string {
 func refreshTufHttp(c *gin.Context) {
 	err := globalApp.refreshTufApp(fioClient, c.Query("localTufRepo"))
 	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, tufError{fmt.Sprintf("failed to create Config instance: %w", err)})
+		errAbort := c.AbortWithError(http.StatusBadRequest, tufError{fmt.Sprintf("failed to create Config instance: %v", err)})
+		if errAbort != nil {
+			log.Println("Error aborting TUF refresh operation request %w", errAbort)
+		}
+
 	}
 	c.Done()
 }
@@ -224,12 +228,19 @@ func startHttpServer() {
 	// TODO: make port configurable
 	port := 9080
 	router := gin.Default()
-	router.SetTrustedProxies([]string{"127.0.0.1"})
+	err := router.SetTrustedProxies([]string{"127.0.0.1"})
+	if err != nil {
+		log.Println("Error setting gin router trusted proxies: ", err)
+		return
+	}
 	router.GET("/targets", getTargetsHttp)
 	router.GET("/root", getRootHttp)
 	router.POST("/targets/update/", refreshTufHttp)
 	log.Println("Starting TUF agent http server at port", port)
-	router.Run(":" + strconv.Itoa(port))
+	err = router.Run(":" + strconv.Itoa(port))
+	if err != nil {
+		log.Println("Error starting gin router: ", err)
+	}
 }
 
 func (a *App) StartTufAgent() error {
@@ -238,7 +249,10 @@ func (a *App) StartTufAgent() error {
 	// defer crypto.Close()
 	a.callInitFunctions(client, crypto)
 
-	a.refreshTufApp(client, "")
+	err := a.refreshTufApp(client, "")
+	if err != nil {
+		return err
+	}
 
 	startHttpServer()
 	return nil

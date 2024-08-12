@@ -12,8 +12,6 @@ import (
 	"time"
 )
 
-const onChangedForceExit = 123
-
 var NotModifiedError = errors.New("Config unchanged on server")
 
 // Functions to be called when the daemon is initialized
@@ -48,22 +46,24 @@ func tomlAssertVal(cfg *AppConfig, key string, allowed []string) string {
 	return val
 }
 
-// sota.toml has slot id's as "01". We need to turn that into []byte{1}
-func idToBytes(id string) []byte {
-	bytes := []byte(id)
-	start := -1
-	for idx, char := range bytes {
-		bytes[idx] = char - byte('0')
-		if bytes[idx] != 0 && start == -1 {
-			start = idx
-		}
-	}
-	//strip off leading 0's
-	return bytes[start:]
-}
+// TODO: Re-enable code for hsm / pkcs11 support
+// // sota.toml has slot id's as "01". We need to turn that into []byte{1}
+// func idToBytes(id string) []byte {
+// 	bytes := []byte(id)
+// 	start := -1
+// 	for idx, char := range bytes {
+// 		bytes[idx] = char - byte('0')
+// 		if bytes[idx] != 0 && start == -1 {
+// 			start = idx
+// 		}
+// 	}
+// 	//strip off leading 0's
+// 	return bytes[start:]
+// }
 
 func createClientPkcs11(sota *AppConfig) (*http.Client, CryptoHandler) {
 	return nil, nil
+	// TODO: Re-enable code for hsm / pkcs11 support
 	// module := sota.GetOrDie("p11.module")
 	// pin := sota.GetOrDie("p11.pass")
 	// pkeyId := sota.GetOrDie("p11.tls_pkey_id")
@@ -189,29 +189,6 @@ func NewApp(configPaths []string, secrets_dir string, unsafeHandlers, testing bo
 	}
 
 	return &app, nil
-}
-
-// Do an atomic write to the file which prevents race conditions for a reader.
-// Don't worry about writer synchronization as there is only one writer to these files.
-func safeWrite(name string, data []byte) error {
-	tmpfile := name + ".tmp"
-	f, err := os.OpenFile(tmpfile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o640)
-	if err != nil {
-		return fmt.Errorf("Unable to create %s: %w", name, err)
-	}
-	defer os.Remove(tmpfile)
-	_, err = f.Write(data)
-	if err1 := f.Sync(); err1 != nil && err == nil {
-		err = err1
-	}
-	if err1 := f.Close(); err1 != nil && err == nil {
-		err = err1
-	}
-
-	if err != nil {
-		return fmt.Errorf("Unable to create %s: %w", name, err)
-	}
-	return os.Rename(tmpfile, name)
 }
 
 func (a *App) CallInitFunctions() {
