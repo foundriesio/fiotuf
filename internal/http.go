@@ -84,11 +84,3 @@ func httpDo(client *http.Client, method, url string, headers map[string]string, 
 func httpGet(client *http.Client, url string, headers map[string]string) (*httpRes, error) {
 	return httpDo(client, http.MethodGet, url, headers, nil)
 }
-
-func httpPatch(client *http.Client, url string, data interface{}) (*httpRes, error) {
-	return httpDo(client, http.MethodPatch, url, nil, data)
-}
-
-func httpPost(client *http.Client, url string, data interface{}) (*httpRes, error) {
-	return httpDo(client, http.MethodPost, url, nil, data)
-}
