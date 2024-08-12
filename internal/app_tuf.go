@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	stdlog "log"
@@ -94,7 +95,33 @@ func (d *FioFetcher) DownloadFile(urlPath string, maxLength int64, timeout time.
 func getTufCfg(client *http.Client, repoUrl string, tag string) (*config.UpdaterConfig, error) {
 	// TODO: do not hardcode path:
 	localMetadataDir := "/var/sota/tuf/"
-	rootBytes, err := os.ReadFile(filepath.Join(localMetadataDir, "root.json"))
+	provPath := "/usr/lib/sota/tuf/"
+
+	rootPath := filepath.Join(localMetadataDir, "root.json")
+	if _, err := os.Stat(rootPath); errors.Is(err, os.ErrNotExist) {
+		log.Printf("%s does not exist. Trying to import initial root metadata\n", rootPath)
+		deviceType := "ci" // or "prod"
+		existingRootPath := ""
+		for i := 1; i < 100; i++ {
+			importRootPath := filepath.Join(provPath, deviceType, strconv.Itoa(i)+".root.json")
+			if _, err := os.Stat(importRootPath); errors.Is(err, os.ErrNotExist) {
+				break
+			} else {
+				existingRootPath = importRootPath
+			}
+		}
+
+		if existingRootPath != "" {
+			log.Printf("Importing %s", existingRootPath)
+			rootPath = existingRootPath
+		} else {
+			msg := "unable to find initial root metadata"
+			log.Println(msg)
+			return nil, errors.New(msg)
+		}
+	}
+
+	rootBytes, err := os.ReadFile(rootPath)
 	if err != nil {
 		log.Println("os.ReadFile error")
 		return nil, err
@@ -132,14 +159,14 @@ func refreshTuf(client *http.Client, repoUrl string, tag string) error {
 
 	cfg, err := getTufCfg(client, repoUrl, tag)
 	if err != nil {
-		log.Println("failed to create Config instance: %w", err)
+		log.Println("failed to create Config instance: ", err)
 		return err
 	}
 
 	// create a new Updater instance
 	up, err := updater.New(cfg)
 	if err != nil {
-		log.Println("failed to create Updater instance: %w", err)
+		log.Println("failed to create Updater instance: ", err)
 		return err
 	}
 
@@ -149,7 +176,7 @@ func refreshTuf(client *http.Client, repoUrl string, tag string) error {
 	// try to build the top-level metadata
 	err = up.Refresh()
 	if err != nil {
-		log.Println("failed to refresh trusted metadata: %w", err)
+		log.Println("failed to refresh trusted metadata: ", err)
 		return err
 	}
 	log.Println("TUF refresh successful")
