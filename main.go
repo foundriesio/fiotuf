@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/detsch/fiotuf/internal"
+	"github.com/foundriesio/fioconfig/sotatoml"
 	"github.com/urfave/cli/v2"
 )
 
@@ -38,7 +39,7 @@ func main() {
 			&cli.StringSliceFlag{
 				Name:    "config",
 				Aliases: []string{"c"},
-				Value:   cli.NewStringSlice(internal.DEF_CONFIG_ORDER...),
+				Value:   cli.NewStringSlice(sotatoml.DEF_CONFIG_ORDER...),
 				Usage:   "Aktualizr config paths",
 				EnvVars: []string{"SOTA_DIR"},
 			},
