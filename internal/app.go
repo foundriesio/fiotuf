@@ -10,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/foundriesio/fioconfig/sotatoml"
 )
 
 var NotModifiedError = errors.New("Config unchanged on server")
@@ -30,12 +32,12 @@ type App struct {
 	configUrl      string
 	configPaths    []string
 	unsafeHandlers bool
-	sota           *AppConfig
+	sota           *sotatoml.AppConfig
 
 	exitFunc func(int)
 }
 
-func tomlAssertVal(cfg *AppConfig, key string, allowed []string) string {
+func tomlAssertVal(cfg *sotatoml.AppConfig, key string, allowed []string) string {
 	val := cfg.GetOrDie(key)
 	for _, v := range allowed {
 		if val == v {
@@ -61,7 +63,7 @@ func tomlAssertVal(cfg *AppConfig, key string, allowed []string) string {
 // 	return bytes[start:]
 // }
 
-func createClientPkcs11(sota *AppConfig) (*http.Client, CryptoHandler) {
+func createClientPkcs11(sota *sotatoml.AppConfig) (*http.Client, CryptoHandler) {
 	return nil, nil
 	// TODO: Re-enable code for hsm / pkcs11 support
 	// module := sota.GetOrDie("p11.module")
@@ -115,7 +117,7 @@ func createClientPkcs11(sota *AppConfig) (*http.Client, CryptoHandler) {
 	// return client, nil
 }
 
-func createClientLocal(sota *AppConfig) (*http.Client, CryptoHandler) {
+func createClientLocal(sota *sotatoml.AppConfig) (*http.Client, CryptoHandler) {
 	certFile := sota.GetOrDie("import.tls_clientcert_path")
 	keyFile := sota.GetOrDie("import.tls_pkey_path")
 	caFile := sota.GetOrDie("import.tls_cacert_path")
@@ -146,7 +148,7 @@ func createClientLocal(sota *AppConfig) (*http.Client, CryptoHandler) {
 	// panic("Unsupported private key")
 }
 
-func createClient(sota *AppConfig) (*http.Client, CryptoHandler) {
+func createClient(sota *sotatoml.AppConfig) (*http.Client, CryptoHandler) {
 	_ = tomlAssertVal(sota, "tls.ca_source", []string{"file"})
 	source := tomlAssertVal(sota, "tls.pkey_source", []string{"file", "pkcs11"})
 	_ = tomlAssertVal(sota, "tls.cert_source", []string{source})
@@ -158,9 +160,9 @@ func createClient(sota *AppConfig) (*http.Client, CryptoHandler) {
 
 func NewApp(configPaths []string, secrets_dir string, unsafeHandlers, testing bool) (*App, error) {
 	if len(configPaths) == 0 {
-		configPaths = DEF_CONFIG_ORDER
+		configPaths = sotatoml.DEF_CONFIG_ORDER
 	}
-	sota, err := NewAppConfig(configPaths)
+	sota, err := sotatoml.NewAppConfig(configPaths)
 	if err != nil {
 		fmt.Println("ERROR - unable to decode sota.toml:", err)
 		os.Exit(1)

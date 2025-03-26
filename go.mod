@@ -2,11 +2,14 @@ module github.com/detsch/fiotuf
 
 go 1.22
 
+replace github.com/foundriesio/fioconfig => github.com/doanac/fioconfig v0.0.0-20241206223632-e2b017198a7f
+
 require (
 	github.com/detsch/go-tuf/v2 v2.0.0-20240719185448-97b7f38b7031
+	github.com/foundriesio/fioconfig v0.0.0-20250106172201-285bf31bb6a3
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-logr/stdr v1.2.2
-	github.com/pelletier/go-toml v1.9.3
+	github.com/pelletier/go-toml v1.9.5
 	github.com/urfave/cli/v2 v2.27.2
 )
 
