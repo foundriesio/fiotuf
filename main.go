@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -11,21 +10,21 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func NewApp(c *cli.Context) (*internal.App, error) {
-	app, err := internal.NewApp(c.StringSlice("config"), c.String("secrets-dir"), c.Bool("unsafe-handlers"), false)
-	if err != nil {
-		return nil, err
-	}
-	return app, err
-}
 
 func tufAgent(c *cli.Context) error {
-	app, err := NewApp(c)
+	configPaths := c.StringSlice("config")
+	if len(configPaths) == 0 {
+		configPaths = sotatoml.DEF_CONFIG_ORDER
+	}
+
+	config, err := sotatoml.NewAppConfig(configPaths)
 	if err != nil {
-		return err
+		fmt.Println("ERROR - unable to decode sota.toml:", err)
+		os.Exit(1)
 	}
 	log.Print("Starting TUF client agent")
-	if err := app.StartTufAgent(); err != nil && !errors.Is(err, internal.NotModifiedError) {
+	err = internal.StartTufAgent(config)
+	if err != nil {
 		return err
 	}
 	return nil

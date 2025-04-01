@@ -2,7 +2,7 @@ module github.com/detsch/fiotuf
 
 go 1.22
 
-replace github.com/foundriesio/fioconfig => github.com/doanac/fioconfig v0.0.0-20241206223632-e2b017198a7f
+replace github.com/foundriesio/fioconfig => github.com/detsch/fioconfig v0.0.0-20250401184048-462cbe6eef81
 
 require (
 	github.com/detsch/go-tuf/v2 v2.0.0-20240719185448-97b7f38b7031
