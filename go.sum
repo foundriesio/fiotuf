@@ -16,6 +16,8 @@ github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ3
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/detsch/fioconfig v0.0.0-20250401184048-462cbe6eef81 h1:VA2/YbzhWapxfPBneYWSJWJnKjprkcZZFV8rFI+egww=
+github.com/detsch/fioconfig v0.0.0-20250401184048-462cbe6eef81/go.mod h1:J3pslinCE6G5lqeAU5EY7/KBGKWRTq53P16eUH9zgG4=
 github.com/detsch/go-tuf/v2 v2.0.0-20240719185448-97b7f38b7031 h1:tSocM0Y5HfQLUhFccPbB6EE8VapEFqOXMdjOxeAvH7M=
 github.com/detsch/go-tuf/v2 v2.0.0-20240719185448-97b7f38b7031/go.mod h1:LbqCdBkutOGBouo8ciRxa9Il9PhlkMi3/XUoPewlKDQ=
 github.com/doanac/fioconfig v0.0.0-20241206223632-e2b017198a7f h1:vhX6qj2/MTb5yTx9qliBL31eXcLS2nofeK11F3P3qj4=
