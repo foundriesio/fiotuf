@@ -10,8 +10,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-
-func tufAgent(c *cli.Context) error {
+func tufHttpAgent(c *cli.Context) error {
 	configPaths := c.StringSlice("config")
 	if len(configPaths) == 0 {
 		configPaths = sotatoml.DEF_CONFIG_ORDER
@@ -22,7 +21,7 @@ func tufAgent(c *cli.Context) error {
 		fmt.Println("ERROR - unable to decode sota.toml:", err)
 		os.Exit(1)
 	}
-	log.Print("Starting TUF client agent")
+	log.Print("Starting TUF client HTTP agent")
 	err = internal.StartTufAgent(config)
 	if err != nil {
 		return err
@@ -45,10 +44,10 @@ func main() {
 		},
 		Commands: []*cli.Command{
 			{
-				Name:  "start-agent",
-				Usage: "Start TUF client agent",
+				Name:  "start-http-agent",
+				Usage: "Start TUF client HTTP agent",
 				Action: func(c *cli.Context) error {
-					return tufAgent(c)
+					return tufHttpAgent(c)
 				},
 			},
 			{
@@ -60,7 +59,7 @@ func main() {
 				},
 			},
 		},
-		DefaultCommand: "start-agent",
+		DefaultCommand: "start-http-agent",
 	}
 
 	err := app.Run(os.Args)

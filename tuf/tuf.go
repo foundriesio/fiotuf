@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	stdlog "log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -12,14 +11,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/detsch/go-tuf/v2/metadata"
-	"github.com/detsch/go-tuf/v2/metadata/config"
-	"github.com/detsch/go-tuf/v2/metadata/updater"
 	"github.com/foundriesio/fioconfig/sotatoml"
 	"github.com/foundriesio/fioconfig/transport"
 	"github.com/go-logr/stdr"
+	"github.com/theupdateframework/go-tuf/v2/metadata"
+	"github.com/theupdateframework/go-tuf/v2/metadata/config"
+	"github.com/theupdateframework/go-tuf/v2/metadata/updater"
 )
-
 
 type FioFetcher struct {
 	client  *http.Client
@@ -28,30 +26,30 @@ type FioFetcher struct {
 }
 
 type FioTuf struct {
-	config           *sotatoml.AppConfig
-	client  *http.Client
+	config     *sotatoml.AppConfig
+	client     *http.Client
 	fioUpdater *updater.Updater
 }
 
 func NewFioTuf(config *sotatoml.AppConfig) (*FioTuf, error) {
 	client := transport.CreateClient(config)
-	
+
 	up, err := newFioUpdater(config, client, "")
 	if err != nil {
 		return nil, err
 	}
 
 	ret := FioTuf{
-		config: config,
-		client: client,
+		config:     config,
+		client:     client,
 		fioUpdater: up,
 	}
-	
+
 	return &ret, nil
 }
 
 func (fiotuf *FioTuf) RefreshTuf(localRepoPath string) error {
-	metadata.SetLogger(stdr.New(stdlog.New(os.Stdout, "", stdlog.LstdFlags)))
+	metadata.SetLogger(stdr.New(log.New(os.Stdout, "", log.LstdFlags)))
 
 	up, err := newFioUpdater(fiotuf.config, fiotuf.client, "")
 	if err != nil {
@@ -103,7 +101,7 @@ func readRemoteFile(d *FioFetcher, urlPath string, maxLength int64) ([]byte, err
 	log.Println("Fetching remote file: " + urlPath)
 	headers := make(map[string]string)
 	headers["x-ats-tags"] = d.tag
-	res, err := httpGet(d.client, urlPath, headers)
+	res, err := transport.HttpGet(d.client, urlPath, headers)
 
 	if err != nil {
 		return nil, err
@@ -196,7 +194,7 @@ func getTufCfg(client *http.Client, repoUrl string, tag string) (*config.Updater
 	return cfg, nil
 }
 
-func newFioUpdater(config *sotatoml.AppConfig, client  *http.Client, localRepoPath string) (*updater.Updater, error) {
+func newFioUpdater(config *sotatoml.AppConfig, client *http.Client, localRepoPath string) (*updater.Updater, error) {
 	repoUrl := ""
 	if localRepoPath == "" {
 		repoUrl = config.GetDefault("tls.server", "https://ota-lite.foundries.io:8443") + "/repo"
