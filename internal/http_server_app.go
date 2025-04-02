@@ -15,6 +15,7 @@ var (
 	globalFioTuf *tuf.FioTuf
 )
 
+var Commit string
 
 func getTargetsHttp(c *gin.Context) {
 	// ret := []string{}
@@ -46,7 +47,6 @@ func refreshTufHttp(c *gin.Context) {
 		if errAbort != nil {
 			log.Println("Error aborting TUF refresh operation request %w", errAbort)
 		}
-
 	}
 	c.Done()
 }
@@ -71,7 +71,6 @@ func startHttpServer() {
 }
 
 func StartTufAgent(config *sotatoml.AppConfig) error {
-
 	fiotuf, err := tuf.NewFioTuf(config)
 	if err != nil {
 		log.Println("Error creating fiotuf: ", err)
