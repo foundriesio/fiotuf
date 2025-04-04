@@ -31,9 +31,7 @@ type FioTuf struct {
 	fioUpdater *updater.Updater
 }
 
-func NewFioTuf(config *sotatoml.AppConfig) (*FioTuf, error) {
-	client := transport.CreateClient(config)
-
+func NewFioTuf(config *sotatoml.AppConfig, client *http.Client) (*FioTuf, error) {
 	up, err := newFioUpdater(config, client, "")
 	if err != nil {
 		return nil, err
@@ -51,7 +49,7 @@ func NewFioTuf(config *sotatoml.AppConfig) (*FioTuf, error) {
 func (fiotuf *FioTuf) RefreshTuf(localRepoPath string) error {
 	metadata.SetLogger(stdr.New(log.New(os.Stdout, "", log.LstdFlags)))
 
-	up, err := newFioUpdater(fiotuf.config, fiotuf.client, "")
+	up, err := newFioUpdater(fiotuf.config, fiotuf.client, localRepoPath)
 	if err != nil {
 		return err
 	}
@@ -141,7 +139,7 @@ func readRemoteFile(d *FioFetcher, urlPath string, maxLength int64) ([]byte, err
 }
 
 func getTufCfg(client *http.Client, repoUrl string, tag string) (*config.UpdaterConfig, error) {
-	// TODO: do not hardcode path:
+	// TODO: do not hardcode paths:
 	localMetadataDir := "/var/sota/tuf/"
 	provPath := "/usr/lib/sota/tuf/"
 

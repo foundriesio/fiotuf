@@ -1,4 +1,4 @@
-package internal
+package tuf_agent_server
 
 import (
 	"fmt"
@@ -6,8 +6,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/detsch/fiotuf/tuf"
 	"github.com/foundriesio/fioconfig/sotatoml"
+	"github.com/foundriesio/fioconfig/transport"
+	"github.com/foundriesio/fiotuf/tuf"
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,15 +16,12 @@ var (
 	globalFioTuf *tuf.FioTuf
 )
 
-var Commit string
+const (
+	httpPort int = 9080 // TODO: make configurable
+)
 
 func getTargetsHttp(c *gin.Context) {
-	// ret := []string{}
 	targets := globalFioTuf.GetTargets()
-	// for name := range targets {
-	// 	t, _ := targets[name].MarshalJSON()
-	// 	ret = append(ret, string(t))
-	// }
 	c.IndentedJSON(http.StatusOK, targets)
 }
 
@@ -52,8 +50,7 @@ func refreshTufHttp(c *gin.Context) {
 }
 
 func startHttpServer() {
-	// TODO: make port configurable
-	port := 9080
+	port := httpPort
 	router := gin.Default()
 	err := router.SetTrustedProxies([]string{"127.0.0.1"})
 	if err != nil {
@@ -71,7 +68,13 @@ func startHttpServer() {
 }
 
 func StartTufAgent(config *sotatoml.AppConfig) error {
-	fiotuf, err := tuf.NewFioTuf(config)
+	client, err := transport.CreateClient(config)
+	if err != nil {
+		log.Println("Error creating HTTP client: ", err)
+		return err
+	}
+
+	fiotuf, err := tuf.NewFioTuf(config, client)
 	if err != nil {
 		log.Println("Error creating fiotuf: ", err)
 		return err
