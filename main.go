@@ -1,11 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 
 	"github.com/detsch/fiotuf/internal"
+	"github.com/detsch/fiotuf/updateclient"
 	"github.com/foundriesio/fioconfig/sotatoml"
 	"github.com/urfave/cli/v2"
 )
@@ -18,7 +18,7 @@ func tufHttpAgent(c *cli.Context) error {
 
 	config, err := sotatoml.NewAppConfig(configPaths)
 	if err != nil {
-		fmt.Println("ERROR - unable to decode sota.toml:", err)
+		log.Println("ERROR - unable to decode sota.toml:", err)
 		os.Exit(1)
 	}
 	log.Print("Starting TUF client HTTP agent")
@@ -27,6 +27,12 @@ func tufHttpAgent(c *cli.Context) error {
 		return err
 	}
 	return nil
+}
+
+func updateClient(c *cli.Context) error {
+	srcDir := c.String("src-dir")
+
+	return updateclient.RunUpdateClient(srcDir)
 }
 
 func main() {
@@ -41,6 +47,12 @@ func main() {
 				Usage:   "Aktualizr config paths",
 				EnvVars: []string{"SOTA_DIR"},
 			},
+			&cli.StringFlag{
+				Name:    "src-dir",
+				Aliases: []string{"s"},
+				Value:   "",
+				Usage:   "Directory that contains an offline update bundle",
+			},
 		},
 		Commands: []*cli.Command{
 			{
@@ -51,10 +63,17 @@ func main() {
 				},
 			},
 			{
+				Name:  "update-client",
+				Usage: "Start update client",
+				Action: func(c *cli.Context) error {
+					return updateClient(c)
+				},
+			},
+			{
 				Name:  "version",
 				Usage: "Display version of this command",
 				Action: func(c *cli.Context) error {
-					fmt.Println(internal.Commit)
+					log.Println(internal.Commit)
 					return nil
 				},
 			},
