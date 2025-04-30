@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/detsch/fiotuf/tuf"
 	"github.com/foundriesio/fioconfig/sotatoml"
 	"github.com/foundriesio/fioconfig/transport"
+	"github.com/foundriesio/fiotuf/tuf"
 	"github.com/gin-gonic/gin"
 )
 

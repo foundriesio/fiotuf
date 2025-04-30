@@ -4,9 +4,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/detsch/fiotuf/internal"
-	"github.com/detsch/fiotuf/updateclient"
 	"github.com/foundriesio/fioconfig/sotatoml"
+	"github.com/foundriesio/fiotuf/internal"
+	"github.com/foundriesio/fiotuf/updateclient"
 	"github.com/urfave/cli/v2"
 )
 

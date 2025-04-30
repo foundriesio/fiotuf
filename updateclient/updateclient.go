@@ -10,9 +10,9 @@ import (
 	"slices"
 	"strconv"
 
-	"github.com/detsch/fiotuf/events"
-	"github.com/detsch/fiotuf/targets"
-	"github.com/detsch/fiotuf/tuf"
+	"github.com/foundriesio/fiotuf/events"
+	"github.com/foundriesio/fiotuf/targets"
+	"github.com/foundriesio/fiotuf/tuf"
 	"github.com/theupdateframework/go-tuf/v2/metadata"
 
 	"github.com/foundriesio/composeapp/pkg/compose"

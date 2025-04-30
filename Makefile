@@ -3,7 +3,7 @@ TAGS:=${FIOTUF_TAGS}
 COMMIT:=$(shell git log -1 --pretty=format:%h)$(shell git diff --quiet || echo '_')
 
 # Use linker flags to provide commit info
-LDFLAGS=-ldflags "-X=github.com/detsch/fiotuf/internal.Commit=$(COMMIT)"
+LDFLAGS=-ldflags "-X=github.com/foundriesio/fiotuf/internal.Commit=$(COMMIT)"
 
 TARGETS=bin/fiotuf-linux-amd64 bin/fiotuf-linux-arm
 

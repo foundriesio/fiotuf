@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/detsch/fiotuf/events"
-	"github.com/detsch/fiotuf/targets"
+	"github.com/foundriesio/fiotuf/events"
+	"github.com/foundriesio/fiotuf/targets"
 
 	_ "modernc.org/sqlite"
 

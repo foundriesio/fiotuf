@@ -74,6 +74,8 @@ github.com/foundriesio/composeapp v0.0.0-20250425134127-fa0dd8145ad0 h1:PxdG92vx
 github.com/foundriesio/composeapp v0.0.0-20250425134127-fa0dd8145ad0/go.mod h1:CZI/sfovi2qlPUQfzwhb7CS39NWzKwwkYCNUhbDLHiw=
 github.com/foundriesio/composeapp v0.0.0-20250429142323-6cda8b552c74 h1:7K44RzIsdPWhNdqjRVlU1RX1Fs5bCz54ZLk1efPWdPY=
 github.com/foundriesio/composeapp v0.0.0-20250429142323-6cda8b552c74/go.mod h1:CZI/sfovi2qlPUQfzwhb7CS39NWzKwwkYCNUhbDLHiw=
+github.com/foundriesio/go-tuf/v2 v2.0.2-fio h1:adV2lRCEcWxBSAIYRT69gTIq2GwkpzGnQucONWHkPoo=
+github.com/foundriesio/go-tuf/v2 v2.0.2-fio/go.mod h1:t6EpmESDnXjVcmGE2ZijOQGyEcsOBxCqotOMssOkAVQ=
 github.com/gabriel-vasile/mimetype v1.4.3 h1:in2uUcidCuFcDKtdcBxlR0rJ1+fsokWf+uqxgUFjbI0=
 github.com/gabriel-vasile/mimetype v1.4.3/go.mod h1:d8uq/6HKRL6CGdk+aubisF/M5GcPfT7nKyLpA0lbSSk=
 github.com/gin-contrib/sse v0.1.0 h1:Y/yl/+YNO8GZSjAhjMsSuLt29uWRFHdHYUb5lYOV9qE=

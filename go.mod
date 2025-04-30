@@ -1,4 +1,4 @@
-module github.com/detsch/fiotuf
+module github.com/foundriesio/fiotuf
 
 go 1.23.0
 
@@ -6,7 +6,7 @@ toolchain go1.24.2
 
 replace github.com/foundriesio/fioconfig => github.com/detsch/fioconfig v0.0.0-20250402193550-1f600a09de79
 
-replace github.com/theupdateframework/go-tuf/v2 v2.0.2 => github.com/detsch/go-tuf/v2 v2.0.2-fio
+replace github.com/theupdateframework/go-tuf/v2 v2.0.2 => github.com/foundriesio/go-tuf/v2 v2.0.2-fio
 
 replace github.com/foundriesio/composeapp => github.com/foundriesio/composeapp v0.0.0-20250429142323-6cda8b552c74
 
