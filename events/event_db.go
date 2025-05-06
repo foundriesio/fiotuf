@@ -11,6 +11,21 @@ import (
 	_ "github.com/foundriesio/composeapp/pkg/update"
 )
 
+func CreateEventsTable(dbFilePath string) error {
+	db, err := sql.Open("sqlite", dbFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to open database: %v", err)
+	}
+	defer db.Close()
+
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS report_events(id INTEGER PRIMARY KEY, json_string TEXT NOT NULL);")
+	if err != nil {
+		return fmt.Errorf("failed to create report_events table: %v", err)
+	}
+
+	return nil
+}
+
 func SaveEvent(dbFilePath string, event *DgUpdateEvent) error {
 	db, err := sql.Open("sqlite", dbFilePath)
 	if err != nil {

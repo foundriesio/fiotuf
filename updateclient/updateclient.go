@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"path"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/foundriesio/fiotuf/events"
 	"github.com/foundriesio/fiotuf/targets"
@@ -68,9 +70,12 @@ type (
 		DbFilePath string
 
 		Target          *metadata.TargetFiles
+		CurrentTarget   *metadata.TargetFiles
 		Reason          string
 		RequiredApps    []string
 		AppsToUninstall []string
+		InstalledApps   []string
+		ConfiguredApps  []string
 
 		Context       context.Context
 		ComposeConfig *compose.Config
@@ -80,12 +85,42 @@ type (
 	}
 )
 
+func InitializeDatabase(dbFilePath string) error {
+	err := targets.CreateTargetsTable(dbFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to create targets table %v", err)
+	}
+
+	err = events.CreateEventsTable(dbFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to create events table %v", err)
+	}
+
+	// TODO: When using aklite as docker credentials agent, additional tables are required: version and tls_creds
+	return nil
+}
+
 // Runs check + update (if needed) once. May become a loop in the future
-func RunUpdateClient(srcDir string) error {
-	config, err := sotatoml.NewAppConfig(sotatoml.DEF_CONFIG_ORDER)
+func RunUpdateClient(srcDir string, cfgDirs []string) error {
+	var configPaths []string
+	if len(cfgDirs) > 0 {
+		configPaths = cfgDirs
+	} else {
+		configPaths = sotatoml.DEF_CONFIG_ORDER
+	}
+	config, err := sotatoml.NewAppConfig(configPaths)
 	if err != nil {
 		log.Println("ERROR - unable to decode sota.toml:", err)
 		os.Exit(1)
+	}
+
+	updateContext := &UpdateContext{
+		DbFilePath: path.Join(config.GetDefault("storage.path", "/var/sota"), config.GetDefault("storage.sqldb_path", "sql.db")),
+	}
+	err = InitializeDatabase(updateContext.DbFilePath)
+	if err != nil {
+		log.Println("Error initializing database", err)
+		return err
 	}
 
 	client := transport.CreateClient(config)
@@ -107,47 +142,117 @@ func RunUpdateClient(srcDir string) error {
 		return err
 	}
 
-	allTargets := fiotuf.GetTargets()
-
-	updateContext, err := GetTargetToInstall(config, allTargets)
+	tufTargets := fiotuf.GetTargets()
+	err = GetTargetToInstall(updateContext, config, tufTargets)
 	if err != nil {
 		return fmt.Errorf("error getting target to install %v", err)
 	}
 
 	// log.Println("GetTargetToInstall", updateContext.Target, updateContext.AppsToInstall, updateContext.AppsToUninstall)
 	if updateContext != nil {
-		doRollback, err := PerformUpdate(updateContext)
-		if doRollback {
-			log.Println("Rolling back", err)
-			err = Rollback(updateContext)
-			if err != nil {
-				log.Println("Error rolling back", err)
-				return err
-			}
-		}
+		_, err := PerformUpdate(updateContext)
+		// if doRollback {
+		// 	log.Println("Rolling back", err)
+		// 	err = Rollback(updateContext)
+		// 	if err != nil {
+		// 		log.Println("Error rolling back", err)
+		// 		return err
+		// 	}
+		// }
 		if err != nil {
 			log.Println("Error updating to target:", err)
-			return err
 		}
 	}
+
+	ReportAppsStates(config, client, updateContext)
 
 	eventsUrl := config.GetDefault("tls.server", "https://ota-lite.foundries.io:8443") + "/events"
 	log.Println("Flushing events")
 	events.FlushEvents(updateContext.DbFilePath, client, eventsUrl)
+	return err
+}
+
+func ReportAppsStates(config *sotatoml.AppConfig, client *http.Client, updateContext *UpdateContext) error {
+	return nil
+	states, err := compose.CheckAppsStatus(updateContext.Context, updateContext.ComposeConfig, nil)
+	if err != nil {
+		log.Println("Error checking apps status", err)
+		return err
+	}
+
+	appsStatesUrl := config.GetDefault("tls.server", "https://ota-lite.foundries.io:8443") + "/apps-states"
+
+	res, err := transport.HttpPost(client, appsStatesUrl, states)
+	if err != nil {
+		log.Printf("Unable to send apps-state: %s", err)
+	} else if res.StatusCode < 200 || res.StatusCode > 204 {
+		log.Printf("Server could not process apps-states (%s): HTTP_%d - %s", interface{}(states), res.StatusCode, res.String())
+	}
+	return err
+}
+
+func FillAppsList(updateContext *UpdateContext) error {
+	targetApps, err := GetAppsUris(updateContext.Target)
+	if err != nil {
+		log.Println("Error getting apps uris", err)
+		return fmt.Errorf("error getting apps uris: %v", err)
+	}
+
+	requiredApps := []string{}
+	for _, app := range targetApps {
+		if updateContext.ConfiguredApps == nil || slices.Contains(updateContext.RequiredApps, app) {
+			requiredApps = append(requiredApps, app)
+		}
+	}
+	updateContext.RequiredApps = requiredApps
+
+	installedApps, err := getInstalledApps(updateContext)
+	log.Println("targetApps:", targetApps)
+	log.Println("runningApps:", installedApps)
+	if err != nil {
+		log.Println("Error getting running apps", err)
+		return fmt.Errorf("error getting running apps: %v", err)
+	}
+	appsToUninstall := []string{}
+	for _, app := range installedApps {
+		if !slices.Contains(updateContext.RequiredApps, app) {
+			appsToUninstall = append(appsToUninstall, app)
+		}
+	}
+	updateContext.AppsToUninstall = appsToUninstall
+	updateContext.InstalledApps = installedApps
+	return nil
+}
+
+func FillAndCheckAppsList(updateContext *UpdateContext) error {
+	err := FillAppsList(updateContext)
+	if err != nil {
+		log.Println("Error filling apps list", err)
+		return fmt.Errorf("error filling apps list: %v", err)
+	}
+
+	log.Println("Checking if current target is running", updateContext.Target.Path)
+	isRunning, err := IsTargetRunning(updateContext)
+	if err != nil {
+		return fmt.Errorf("error checking target: %v", err)
+	}
+
+	if isRunning {
+		log.Println("Target is running")
+		updateContext.Target = nil
+		updateContext.RequiredApps = nil
+	}
 	return nil
 }
 
 // Returns information about the apps to install and to remove, as long as the corresponding target
 // No update operation is performed at this point. Not even apps stopping
-func GetTargetToInstall(config *sotatoml.AppConfig, allTargets map[string]*metadata.TargetFiles) (*UpdateContext, error) {
-	updateContext := &UpdateContext{
-		DbFilePath: path.Join(config.GetDefault("storage.path", "/var/sota"), config.GetDefault("storage.sqldb_path", "sql.db")),
-	}
+func GetTargetToInstall(updateContext *UpdateContext, config *sotatoml.AppConfig, tufTargets map[string]*metadata.TargetFiles) error {
 	var err error
 
 	updateContext.ComposeConfig, err = getComposeConfig(config)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	currentTarget, err := targets.GetCurrentTarget(updateContext.DbFilePath)
@@ -155,7 +260,14 @@ func GetTargetToInstall(config *sotatoml.AppConfig, allTargets map[string]*metad
 		log.Println("Error getting current target", err)
 	}
 
-	candidateTarget, _ := getLatestTarget(allTargets)
+	versionInt := -1
+	version := os.Getenv("UPDATE_TO_VERSION")
+	if version != "" {
+		versionInt, _ = strconv.Atoi(version)
+		fmt.Println("Version set to", versionInt)
+	}
+
+	candidateTarget, _ := selectTarget(tufTargets, versionInt)
 	log.Println("Latest hash:", candidateTarget.Hashes["sha256"])
 
 	// Check if target is marked as failing
@@ -166,60 +278,34 @@ func GetTargetToInstall(config *sotatoml.AppConfig, allTargets map[string]*metad
 	}
 
 	updateContext.Target = candidateTarget
-	targetApps, err := GetAppsUris(candidateTarget)
-	if err != nil {
-		log.Println("Error getting apps uris", err)
-		return nil, fmt.Errorf("error getting apps uris: %v", err)
-	}
-	updateContext.RequiredApps = targetApps
+	updateContext.CurrentTarget = currentTarget
 	updateContext.Context = context.Background()
 
-	installedApps, err := getInstalledApps(updateContext)
-	log.Println("targetApps", targetApps)
-	log.Println("runningApps", installedApps)
+	apps := config.GetDefault("pacman.compose_apps", "-")
+	if apps != "-" {
+		updateContext.ConfiguredApps = strings.Split(apps, ",")
+		log.Println("pacman.compose_apps=", updateContext.ConfiguredApps)
+	}
+
+	err = FillAndCheckAppsList(updateContext)
 	if err != nil {
-		log.Println("Error getting running apps", err)
-		return nil, fmt.Errorf("error getting running apps: %v", err)
-	}
-	appsToUninstall := []string{}
-	for _, app := range installedApps {
-		if !slices.Contains(updateContext.RequiredApps, app) {
-			appsToUninstall = append(appsToUninstall, app)
-		}
-	}
-	updateContext.AppsToUninstall = appsToUninstall
-
-	var currentTargetName string
-	if currentTarget == nil {
-		currentTargetName = "Initial Target"
-	} else {
-		currentTargetName = currentTarget.Path
+		log.Println("FillAndCheckAppsList error", err)
+		return err
 	}
 
-	if updateContext.Target.Path == currentTargetName {
-		log.Println("Checking if current target is running", currentTargetName)
-		isRunning, err := IsTargetRunning(updateContext, installedApps)
-		if err != nil {
-			return nil, fmt.Errorf("error checking target: %v", err)
-		}
-
-		if isRunning {
-			log.Println("Target is running")
-			updateContext.Target = nil
-			updateContext.RequiredApps = nil
-			return updateContext, nil
-		} else {
-			log.Println("Target is not running. Proceeding with an apps sync update")
-		}
+	// No update required
+	if updateContext.Target == nil {
+		log.Println("No update required")
+		return nil
 	}
 
-	if updateContext.Target != nil && currentTargetName != updateContext.Target.Path {
-		updateContext.Reason = "Updating from " + currentTargetName + " to " + updateContext.Target.Path
+	if updateContext.CurrentTarget.Path != updateContext.Target.Path {
+		updateContext.Reason = "Updating from " + updateContext.CurrentTarget.Path + " to " + updateContext.Target.Path
 	} else {
 		updateContext.Reason = "Syncing Active Target Apps"
 	}
-
-	return updateContext, nil
+	log.Println(updateContext.Reason)
+	return nil
 }
 
 // Perform the actual update based on information collected before
@@ -273,30 +359,28 @@ func StopAndRemoveApps(updateContext *UpdateContext) error {
 		log.Println("No apps to uninstall")
 		return nil
 	}
+
+	log.Printf("StopApps apps %v\n", updateContext.AppsToUninstall)
 	err := compose.StopApps(updateContext.Context, updateContext.ComposeConfig, updateContext.AppsToUninstall)
 	if err != nil {
 		log.Println("Error stopping apps", err)
-		return fmt.Errorf("error stopping apps: %v", err)
+		// return fmt.Errorf("error stopping apps: %v", err)
 	}
 
+	log.Printf("Uninstall apps %v\n", updateContext.AppsToUninstall)
+	err = compose.UninstallApps(updateContext.Context, updateContext.ComposeConfig, updateContext.AppsToUninstall)
+	if err != nil {
+		log.Println("Error uninstalling apps", err)
+		// return fmt.Errorf("error uninstalling apps: %v", err)
+	}
+
+	log.Printf("Remove apps %v\n", updateContext.AppsToUninstall)
 	err = compose.RemoveApps(updateContext.Context, updateContext.ComposeConfig, updateContext.AppsToUninstall)
 	if err != nil {
 		log.Println("Error removing apps", err)
 		return fmt.Errorf("error removing apps: %v", err)
 	}
 
-	err = compose.UninstallApps(updateContext.Context, updateContext.ComposeConfig, updateContext.AppsToUninstall)
-	if err != nil {
-		log.Println("Error uninstalling apps", err)
-		return fmt.Errorf("error uninstalling apps: %v", err)
-	}
-
-	return nil
-}
-
-func Rollback(updateContext *UpdateContext) error {
-	log.Println("Rolling back")
-	// TODO: implement me
 	return nil
 }
 
@@ -354,9 +438,9 @@ func GetVersion(target *metadata.TargetFiles) (int, error) {
 	return version, nil
 }
 
-func getLatestTarget(allTargets map[string]*metadata.TargetFiles) (*metadata.TargetFiles, error) {
+func selectTarget(allTargets map[string]*metadata.TargetFiles, version int) (*metadata.TargetFiles, error) {
 	latest := -1
-	var latestTarget *metadata.TargetFiles
+	var selectedTarget *metadata.TargetFiles
 	for name := range allTargets {
 		var tc targets.TargetCustom
 		var b []byte
@@ -370,14 +454,15 @@ func getLatestTarget(allTargets map[string]*metadata.TargetFiles) (*metadata.Tar
 		if err != nil {
 			continue
 		}
-		if v > latest {
-			latestTarget = allTargets[name]
+		if (version > 0 && version == v) || (version <= 0 && v > latest) {
+			selectedTarget = allTargets[name]
 			latest = v
 		}
 		log.Println(name, tc.Version)
 
 	}
-	return latestTarget, nil
+	log.Println(latest)
+	return selectedTarget, nil
 }
 
 func getInstalledApps(updateContext *UpdateContext) ([]string, error) {

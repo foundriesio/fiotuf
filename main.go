@@ -32,7 +32,7 @@ func tufHttpAgent(c *cli.Context) error {
 func updateClient(c *cli.Context) error {
 	srcDir := c.String("src-dir")
 
-	return updateclient.RunUpdateClient(srcDir)
+	return updateclient.RunUpdateClient(srcDir, c.StringSlice("config"))
 }
 
 func main() {

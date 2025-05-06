@@ -38,6 +38,34 @@ func RegisterInstallationFailed(dbFilePath string, target *metadata.TargetFiles,
 	return saveInstalledVersions(dbFilePath, target, correlationId, updateModeFailed)
 }
 
+func CreateTargetsTable(dbFilePath string) error {
+	db, err := sql.Open("sqlite", dbFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to open database: %v", err)
+	}
+	defer db.Close()
+
+	_, err = db.Exec(`
+CREATE TABLE IF NOT EXISTS installed_versions(
+	id INTEGER PRIMARY KEY, 
+	ecu_serial TEXT NOT NULL,
+	sha256 TEXT NOT NULL,
+	name TEXT NOT NULL,
+	hashes TEXT NOT NULL,
+	length INTEGER NOT NULL DEFAULT 0,
+	correlation_id TEXT NOT NULL DEFAULT "",
+	is_current INTEGER NOT NULL CHECK (is_current IN (0,1)) DEFAULT 0,
+	is_pending INTEGER NOT NULL CHECK (is_pending IN (0,1)) DEFAULT 0,
+	was_installed INTEGER NOT NULL CHECK (was_installed IN (0,1)) DEFAULT 0,
+	custom_meta TEXT NOT NULL DEFAULT ""
+);`)
+	if err != nil {
+		return fmt.Errorf("failed to create installed_versions table: %v", err)
+	}
+
+	return nil
+}
+
 func IsFailingTarget(dbFilePath string, name string) (bool, error) {
 	db, err := sql.Open("sqlite", dbFilePath)
 	if err != nil {
@@ -63,15 +91,19 @@ func IsFailingTarget(dbFilePath string, name string) (bool, error) {
 }
 
 func GetCurrentTarget(dbFilePath string) (*metadata.TargetFiles, error) {
+	target := &metadata.TargetFiles{}
+	target.Custom = &json.RawMessage{}
+	target.Path = "Initial Target" // default value, if there is no target data in DB
+
 	db, err := sql.Open("sqlite", dbFilePath)
 	if err != nil {
-		return nil, err
+		return target, err
 	}
 	defer db.Close()
 
 	rows, err := db.Query("SELECT name, custom_meta FROM installed_versions WHERE is_current = 1;")
 	if err != nil {
-		return nil, err
+		return target, err
 	}
 
 	var name string
@@ -79,22 +111,21 @@ func GetCurrentTarget(dbFilePath string) (*metadata.TargetFiles, error) {
 
 	for rows.Next() {
 		if err = rows.Scan(&name, &customMeta); err != nil {
-			return nil, err
+			return target, err
 		}
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return target, err
 	}
 
 	log.Println("Current target:", name)
 
-	target := &metadata.TargetFiles{}
-	target.Path = name
-
-	target.Custom = &json.RawMessage{}
-	if err = json.Unmarshal([]byte(customMeta), target.Custom); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal custom metadata: %v '%s'", err, customMeta)
+	if name != "" {
+		target.Path = name
+		if err = json.Unmarshal([]byte(customMeta), target.Custom); err != nil {
+			return target, fmt.Errorf("failed to unmarshal custom metadata: %v '%s'", err, customMeta)
+		}
 	}
 
 	return target, nil
@@ -124,7 +155,7 @@ func saveInstalledVersions(dbFilePath string, target *metadata.TargetFiles, corr
 
 		log.Println(name, wasInstalled)
 		if name == target.Path {
-			log.Println("Already installed")
+			log.Println("DB: Target was already installed")
 			oldWasInstalled = BoolPointer(wasInstalled)
 			// oldName = name
 		}

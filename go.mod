@@ -8,7 +8,7 @@ replace github.com/foundriesio/fioconfig => github.com/detsch/fioconfig v0.0.0-2
 
 replace github.com/theupdateframework/go-tuf/v2 v2.0.2 => github.com/foundriesio/go-tuf/v2 v2.0.2-fio
 
-replace github.com/foundriesio/composeapp => github.com/foundriesio/composeapp v0.0.0-20250429142323-6cda8b552c74
+replace github.com/foundriesio/composeapp => github.com/foundriesio/composeapp v0.0.0-20250512142514-31854a4c8505
 
 require (
 	github.com/foundriesio/fioconfig v0.0.0-20250106172201-285bf31bb6a3
@@ -109,14 +109,14 @@ require (
 	go.opentelemetry.io/otel/metric v1.21.0 // indirect
 	go.opentelemetry.io/otel/trace v1.21.0 // indirect
 	golang.org/x/arch v0.8.0 // indirect
-	golang.org/x/crypto v0.36.0 // indirect
+	golang.org/x/crypto v0.38.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
 	golang.org/x/mod v0.24.0 // indirect
-	golang.org/x/net v0.37.0 // indirect
-	golang.org/x/sync v0.12.0 // indirect
-	golang.org/x/sys v0.32.0 // indirect
-	golang.org/x/term v0.31.0 // indirect
-	golang.org/x/text v0.23.0 // indirect
+	golang.org/x/net v0.40.0 // indirect
+	golang.org/x/sync v0.14.0 // indirect
+	golang.org/x/sys v0.33.0 // indirect
+	golang.org/x/term v0.32.0 // indirect
+	golang.org/x/text v0.25.0 // indirect
 	golang.org/x/tools v0.31.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230822172742-b8732ec3820d // indirect
 	google.golang.org/grpc v1.59.0 // indirect

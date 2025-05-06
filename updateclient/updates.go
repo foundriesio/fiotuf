@@ -14,7 +14,6 @@ import (
 	_ "modernc.org/sqlite"
 
 	"github.com/foundriesio/composeapp/pkg/compose"
-	"github.com/foundriesio/composeapp/pkg/docker"
 	"github.com/foundriesio/composeapp/pkg/update"
 	"github.com/schollz/progressbar/v3"
 )
@@ -115,7 +114,7 @@ func PullTarget(updateContext *UpdateContext) error {
 	if invokeComposeUpdate {
 		updateStatus = updateContext.Runner.Status()
 		if updateStatus.State != update.StateInitialized && updateStatus.State != update.StateFetching {
-			log.Printf("update state is not initialized or fetching: %s\n", updateStatus.State)
+			log.Printf("update has already been fetched. Update state: %s\n", updateStatus.State)
 			if updateContext.Resuming {
 				return nil
 			}
@@ -191,7 +190,7 @@ func getProgressRenderer() compose.InstallProgressFunc {
 
 func renderImageLoadingProgress(ctx *progressRendererCtx, p *compose.InstallProgress) {
 	switch p.ImageLoadState {
-	case docker.ImageLoadStateLayerLoading:
+	case compose.ImageLoadStateLayerLoading:
 		{
 			if ctx.curImageID != p.ImageID {
 				log.Printf("  Loading image %s\n", p.ImageID)
@@ -207,23 +206,23 @@ func renderImageLoadingProgress(ctx *progressRendererCtx, p *compose.InstallProg
 				log.Printf("Error setting progress bar: %s\n", err.Error())
 			}
 		}
-	case docker.ImageLoadStateLayerSyncing:
+	case compose.ImageLoadStateLayerSyncing:
 		{
 			// TODO: render layer syncing progress
 			//fmt.Print(".")
 		}
-	case docker.ImageLoadStateLayerLoaded:
+	case compose.ImageLoadStateLayerLoaded:
 		{
 			//fmt.Println("ok")
 			ctx.curLayerID = ""
 			ctx.bar.Close()
 			ctx.bar = nil
 		}
-	case docker.ImageLoadStateImageLoaded:
+	case compose.ImageLoadStateImageLoaded:
 		{
 			log.Printf("  Image loaded: %s\n", p.ImageID)
 		}
-	case docker.ImageLoadStateImageExist:
+	case compose.ImageLoadStateImageExist:
 		{
 			log.Printf("  Already exists: %s\n", p.ImageID)
 		}
@@ -239,7 +238,7 @@ func InstallTarget(updateContext *UpdateContext) error {
 	if invokeComposeUpdate {
 		updateStatus := updateContext.Runner.Status()
 		if updateStatus.State != update.StateFetched && updateStatus.State != update.StateInstalling {
-			log.Printf("update state is not fetched or installing: %s\n", updateStatus.State)
+			log.Printf("update was already installed. Update state: %s\n", updateStatus.State)
 			if updateContext.Resuming {
 				return nil
 			}
@@ -258,6 +257,7 @@ func InstallTarget(updateContext *UpdateContext) error {
 		installOptions := []compose.InstallOption{
 			compose.WithInstallProgress(getProgressRenderer())}
 
+		compose.StopApps(updateContext.Context, updateContext.ComposeConfig, updateContext.AppsToUninstall)
 		err = updateContext.Runner.Install(updateContext.Context, installOptions...)
 	}
 	if err != nil {
@@ -290,30 +290,40 @@ func StartTarget(updateContext *UpdateContext) (bool, error) {
 	if invokeComposeUpdate {
 		updateStatus := updateContext.Runner.Status()
 		if updateStatus.State != update.StateInstalled && updateStatus.State != update.StateStarting {
-			log.Printf("update state is not installed or starting: %s\n", updateStatus.State)
-			return false, nil
+			log.Printf("Skipping start target operation because state is: %s\n", updateStatus.State)
+			if updateContext.Resuming {
+				return false, nil
+			}
+			invokeComposeUpdate = false
 		}
+	}
 
-		compose.StopApps(updateContext.Context, updateContext.ComposeConfig, updateContext.AppsToUninstall)
+	compose.StopApps(updateContext.Context, updateContext.ComposeConfig, updateContext.AppsToUninstall)
+	// StopAndRemoveApps(updateContext) // No need to uninstall explicitly if CompleteWithPruning() is in use when completing
+
+	if invokeComposeUpdate {
 		err = updateContext.Runner.Start(updateContext.Context)
+		if err != nil {
+			log.Println("error on starting target", err)
+			err := GenAndSaveEvent(updateContext, events.InstallationCompleted, err.Error(), targets.BoolPointer(false))
+			if err != nil {
+				log.Println("error on GenAndSaveEvent", err)
+			}
+			targets.RegisterInstallationFailed(updateContext.DbFilePath, updateContext.Target, updateContext.CorrelationId)
+
+			rollback(updateContext)
+
+			return false, fmt.Errorf("rolled back to previous target")
+		}
 
 		if updateContext.Runner.Status().State != update.StateStarted {
 			log.Println("update not started")
 		}
 
-		updateStatus = updateContext.Runner.Status()
+		updateStatus := updateContext.Runner.Status()
 		if updateStatus.Progress != 100 {
 			log.Printf("update is not started for 100%%: %d\n", updateStatus.Progress)
 		}
-	}
-
-	if err != nil {
-		err := GenAndSaveEvent(updateContext, events.InstallationCompleted, err.Error(), targets.BoolPointer(false))
-		if err != nil {
-			log.Println("error on GenAndSaveEvent", err)
-		}
-		targets.RegisterInstallationFailed(updateContext.DbFilePath, updateContext.Target, updateContext.CorrelationId)
-		return false, fmt.Errorf("error running target: %v", err)
 	}
 
 	err = GenAndSaveEvent(updateContext, events.InstallationCompleted, "", targets.BoolPointer(true))
@@ -323,25 +333,106 @@ func StartTarget(updateContext *UpdateContext) (bool, error) {
 	targets.RegisterInstallationSuceeded(updateContext.DbFilePath, updateContext.Target, updateContext.CorrelationId)
 
 	if invokeComposeUpdate {
-		StopAndRemoveApps(updateContext)
-		err = updateContext.Runner.Complete(updateContext.Context)
+		err = updateContext.Runner.Complete(updateContext.Context, update.CompleteWithPruning())
 		if err != nil {
-			log.Println("error on completing update", err)
+			log.Println("error completing update:", err)
 		}
 	}
 
 	return false, nil
 }
 
-func IsTargetRunning(updateContext *UpdateContext, installedApps []string) (bool, error) {
+func rollback(updateContext *UpdateContext) error {
+	log.Println("Rolling back to target", updateContext.CurrentTarget.Path)
+
+	if updateContext.Runner != nil {
+
+		updateStatus := updateContext.Runner.Status()
+		if updateStatus.State == update.StateStarted {
+			err := updateContext.Runner.Complete(updateContext.Context)
+			if err != nil {
+				log.Println("Rollback: Error updateContext.Runner.Complete", err)
+			}
+		} else {
+			err := updateContext.Runner.Cancel(updateContext.Context)
+			if err != nil {
+				log.Println("Rollback: Error updateContext.Runner.Cancel", err)
+				return err
+			}
+		}
+
+		updateContext.Runner = nil
+		updateContext.Resuming = false
+	} else {
+		log.Println("Rollback: No installation to cancel")
+	}
+
+	updateContext.Reason = "Rolling back to " + updateContext.CurrentTarget.Path
+	updateContext.Target = updateContext.CurrentTarget
+	updateRunner, err := update.NewUpdate(updateContext.ComposeConfig, updateContext.Target.Path+"|"+updateContext.CorrelationId)
+	if err != nil {
+		log.Println("Rollback: Error calling update.NewUpdate", err)
+		return err
+	}
+
+	err = FillAndCheckAppsList(updateContext)
+	if err != nil {
+		log.Println("Rollback: Error calling FillAndCheckAppsList", err)
+		return err
+	}
+
+	if updateContext.Target == nil {
+		// Target is already running
+		log.Println("Rollback: Target is already running", updateContext.Target)
+		return nil
+	}
+
+	if len(updateContext.RequiredApps) > 0 {
+		err = updateRunner.Init(updateContext.Context, updateContext.RequiredApps)
+		if err != nil {
+			log.Println("rollback init error", err)
+			return err
+		}
+	}
+
+	updateStatus := updateRunner.Status()
+	// Must be in fetched state
+	if updateStatus.State != update.StateFetched && updateStatus.State != update.StateInstalled {
+		log.Println("rollback wrong state error", updateStatus.State)
+		return fmt.Errorf("rollback update was not fetched %s", updateStatus.State)
+	}
+
+	log.Println("Proceeding with rollback. Current update runner state is", updateStatus.State)
+
+	updateContext.Runner = updateRunner
+	err = InstallTarget(updateContext)
+	if err != nil {
+		log.Println("rollback error installing target", err)
+		return err
+	}
+	_, err = StartTarget(updateContext)
+	if err != nil {
+		log.Println("rollback error starting target", err)
+		return err
+	}
+
+	log.Println("rollback done", err)
+	return nil
+}
+
+func IsTargetRunning(updateContext *UpdateContext) (bool, error) {
 	log.Println("Checking target", updateContext.Target)
+	if updateContext.Target.Path != updateContext.CurrentTarget.Path {
+		log.Println("IsTargetRunning: Running name target is different than candidate name target", updateContext.CurrentTarget.Path, updateContext.Target.Path)
+		return false, nil
+	}
 
 	// updateStatus, err := update.GetLastSuccessfulUpdate(updateContext.ComposeConfig)
 	// if err != nil {
 	// 	log.Println("error getting last update", err)
 	// 	return false, err
 	// }
-	if isSublist(installedApps, updateContext.RequiredApps) {
+	if isSublist(updateContext.InstalledApps, updateContext.RequiredApps) {
 		log.Println("Installed applications match selected target apps")
 		err := compose.CheckRunning(updateContext.Context, updateContext.ComposeConfig, updateContext.RequiredApps)
 		if err != nil {
