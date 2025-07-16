@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/foundriesio/fiotuf/events"
 	"github.com/foundriesio/fiotuf/targets"
@@ -173,16 +174,140 @@ func RunUpdateClient(srcDir string, cfgDirs []string) error {
 }
 
 func ReportAppsStates(config *sotatoml.AppConfig, client *http.Client, updateContext *UpdateContext) error {
-	return nil
+	log.Println("Reporting apps state (stub)")
+
 	states, err := compose.CheckAppsStatus(updateContext.Context, updateContext.ComposeConfig, nil)
 	if err != nil {
 		log.Println("Error checking apps status", err)
 		return err
 	}
 
+	currentTime := time.Now()
+	utcTime := currentTime.UTC()
+	rfc3339Time := utcTime.Format(time.RFC3339)
+
+	// {
+	//         "apps" :
+	//         {
+	//                 "shellhttpd_base_10000" :
+	//                 {
+	//                         "bundle_errors" : null,
+	//                         "in_store" : true,
+	//                         "missing_images" : null,
+	//                         "name" : "shellhttpd_base_10000",
+	//                         "services" :
+	//                         [
+	//                                 {
+	//                                         "ctr-id" : "96c8f184b7a8441239fc62b3c0578afefb14d224a405ca153776910af3ba19b4",
+	//                                         "hash" : "87d9fa5844ec9e68677c06df8ab04e2f06170c9508ac47368e723badf36fb602",
+	//                                         "image" : "hub.foundries.io/detsch-temp-test-1/shellhttpd_base_10000@sha256:98e4fcf4df5e67ec7dcb4efb83d4d5b3dc8ca85a1fc792d4a4806e92e26228c4",
+	//                                         "name" : "httpd_1",
+	//                                         "state" : "running",
+	//                                         "status" : "Up 10 hours"
+	//                                 },
+	//                                 {
+	//                                         "ctr-id" : "fb41f07a31e88f54baf9f4d1a460cf430539f830ad6f5ba8337d3965aaa89ec1",
+	//                                         "hash" : "61af703d24a6401c491bbe7ddc177944a3869ba6ada7aba4b32dcb352573f941",
+	//                                         "image" : "hub.foundries.io/detsch-temp-test-1/shellhttpd_base_10000@sha256:98e4fcf4df5e67ec7dcb4efb83d4d5b3dc8ca85a1fc792d4a4806e92e26228c4",
+	//                                         "name" : "httpd_4",
+	//                                         "state" : "running",
+	//                                         "status" : "Up 10 hours"
+	//                                 },
+	//                                 {
+	//                                         "ctr-id" : "cc852a089f6324ad656591cea83a6fa7bab18f5923db71e4e3f0237ba5a8e33a",
+	//                                         "hash" : "9519bdad5105d7af7d7cee424b15016ef4aab48670dbcc2a29bc52361df589b9",
+	//                                         "image" : "hub.foundries.io/detsch-temp-test-1/shellhttpd_base_10000@sha256:98e4fcf4df5e67ec7dcb4efb83d4d5b3dc8ca85a1fc792d4a4806e92e26228c4",
+	//                                         "name" : "httpd_2",
+	//                                         "state" : "running",
+	//                                         "status" : "Up 10 hours"
+	//                                 },
+	//                                 {
+	//                                         "ctr-id" : "3e9bebc47b40adf32a5c21aab736b23d80fbcfc107ea4aa99aed1c86b6c63281",
+	//                                         "hash" : "c2db3a7238a7ce539692eb4822ae9b4336bb691cd5117dce32e0f4112e70158a",
+	//                                         "image" : "hub.foundries.io/detsch-temp-test-1/shellhttpd_base_10000@sha256:98e4fcf4df5e67ec7dcb4efb83d4d5b3dc8ca85a1fc792d4a4806e92e26228c4",
+	//                                         "name" : "httpd_5",
+	//                                         "state" : "running",
+	//                                         "status" : "Up 10 hours"
+	//                                 },
+	//                                 {
+	//                                         "ctr-id" : "bae97284c81a4c3b54e6a64b45b326f83f9da2bb3434b97aa7591e11b4d1710d",
+	//                                         "hash" : "c601a495a5cb4809e3c3604cad08ead965902f4a9ed28a8133a997cb14dbdd71",
+	//                                         "image" : "hub.foundries.io/detsch-temp-test-1/shellhttpd_base_10000@sha256:98e4fcf4df5e67ec7dcb4efb83d4d5b3dc8ca85a1fc792d4a4806e92e26228c4",
+	//                                         "name" : "httpd_3",
+	//                                         "state" : "running",
+	//                                         "status" : "Up 10 hours"
+	//                                 }
+	//                         ],
+	//                         "state" : "healthy",
+	//                         "uri" : "hub.foundries.io/detsch-temp-test-1/shellhttpd_base_10000@sha256:643ec5ca445dcccba14f3ce704f6b7d4ad80756047dbcee4fd1ab938a10a5a41"
+	//                 },
+	//                 "shellhttpd_base_20000" :
+	//                 {
+	//                         "bundle_errors" : null,
+	//                         "in_store" : true,
+	//                         "missing_images" : null,
+	//                         "name" : "shellhttpd_base_20000",
+	//                         "services" :
+	//                         [
+	//                                 {
+	//                                         "ctr-id" : "4b3afad8a22bc35c80936af2daf8ba5ddf884869d78a34a0275e2daa9692d21b",
+	//                                         "hash" : "4e23ce3445a554c071b604bc52e88d34e675c65e2d85f57b8a7080a1ff616684",
+	//                                         "image" : "hub.foundries.io/detsch-temp-test-1/shellhttpd_base_20000@sha256:93257af580de925e5373711539af1ec339b771d33757560a607b9169c9124f58",
+	//                                         "name" : "httpd_1",
+	//                                         "state" : "running",
+	//                                         "status" : "Up 10 hours"
+	//                                 }
+	//                         ],
+	//                         "state" : "healthy",
+	//                         "uri" : "hub.foundries.io/detsch-temp-test-1/shellhttpd_base_20000@sha256:b15e4c02148e10283423938d97f1a105810c6670e81e2e79d6c8040533ff9183"
+	//                 },
+	//                 "shellhttpd_base_30000" :
+	//                 {
+	//                         "bundle_errors" : null,
+	//                         "in_store" : true,
+	//                         "missing_images" : null,
+	//                         "name" : "shellhttpd_base_30000",
+	//                         "services" :
+	//                         [
+	//                                 {
+	//                                         "ctr-id" : "9452b5770cea99400fd4c2e459b1589d8f922cdbf8f49eabb3212cc7ee8730d4",
+	//                                         "hash" : "59ac6764c15175110678c5ca5b7f3d1e7f538d06608c9141479e7a163d77c430",
+	//                                         "image" : "hub.foundries.io/detsch-temp-test-1/shellhttpd_base_10000@sha256:98e4fcf4df5e67ec7dcb4efb83d4d5b3dc8ca85a1fc792d4a4806e92e26228c4",
+	//                                         "name" : "httpd_2",
+	//                                         "state" : "running",
+	//                                         "status" : "Up 10 hours"
+	//                                 },
+	//                                 {
+	//                                         "ctr-id" : "4c1162f8e0519c76ada7d868a6bb120513711bf09e646ba41e3cf642f9d7861b",
+	//                                         "hash" : "ac7d05924baf50f63216bfa9987d6dad00020503e3d7e803ab84204ec4182a65",
+	//                                         "image" : "hub.foundries.io/detsch-temp-test-1/shellhttpd_base_10000@sha256:98e4fcf4df5e67ec7dcb4efb83d4d5b3dc8ca85a1fc792d4a4806e92e26228c4",
+	//                                         "name" : "httpd_1",
+	//                                         "state" : "running",
+	//                                         "status" : "Up 10 hours"
+	//                                 }
+	//                         ],
+	//                         "state" : "healthy",
+	//                         "uri" : "hub.foundries.io/detsch-temp-test-1/shellhttpd_base_30000@sha256:6b43c228e0a9867f368f4ca5f3c0c9f4037060a457741ddc0ed5bcb3046d74ed"
+	//                 }
+	//         },
+	//         "deviceTime" : "2025-07-14T23:12:55Z",
+	//         "ostree" : "2aed97e4925f7949c9762cacbba82ba947ee554f56aa4697aa9e5b3cee43d875"
+	// }
+
+	data := map[string]interface{}{
+		"deviceTime": rfc3339Time,
+		"ostree":     "8509e5bda0c762d2bac7f90d79c2f9bf560f0cdac2c4a2d6361a041a5a677566",
+	}
+
+	dataBytes, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Apps states: %s\n", string(dataBytes))
 	appsStatesUrl := config.GetDefault("tls.server", "https://ota-lite.foundries.io:8443") + "/apps-states"
 
-	res, err := transport.HttpPost(client, appsStatesUrl, states)
+	res, err := transport.HttpPost(client, appsStatesUrl, data)
 	if err != nil {
 		log.Printf("Unable to send apps-state: %s", err)
 	} else if res.StatusCode < 200 || res.StatusCode > 204 {
@@ -208,7 +333,7 @@ func FillAppsList(updateContext *UpdateContext) error {
 
 	installedApps, err := getInstalledApps(updateContext)
 	log.Println("targetApps:", targetApps)
-	log.Println("runningApps:", installedApps)
+	log.Println("installedApps:", installedApps)
 	if err != nil {
 		log.Println("Error getting running apps", err)
 		return fmt.Errorf("error getting running apps: %v", err)
@@ -268,6 +393,11 @@ func GetTargetToInstall(updateContext *UpdateContext, config *sotatoml.AppConfig
 	}
 
 	candidateTarget, _ := selectTarget(tufTargets, versionInt)
+	if candidateTarget == nil {
+		log.Println("No target found for version", versionInt)
+		return fmt.Errorf("no target found for version %d", versionInt)
+	}
+
 	log.Println("Latest hash:", candidateTarget.Hashes["sha256"])
 
 	// Check if target is marked as failing
@@ -466,16 +596,29 @@ func selectTarget(allTargets map[string]*metadata.TargetFiles, version int) (*me
 }
 
 func getInstalledApps(updateContext *UpdateContext) ([]string, error) {
-	return compose.ListApps(updateContext.Context, updateContext.ComposeConfig)
+	ret := []string{}
+	apps, err := compose.ListApps(updateContext.Context, updateContext.ComposeConfig)
+	if err != nil {
+		log.Println("Error listing apps", err)
+		return nil, fmt.Errorf("error listing apps: %v", err)
+	}
+	for _, app := range apps {
+		if app.Name() != "" {
+			ret = append(ret, app.Name())
+		}
+	}
+	return ret, nil
 }
 
 func getComposeConfig(config *sotatoml.AppConfig) (*compose.Config, error) {
-	cfg, err := v1.NewDefaultConfig()
+	cfg, err := v1.NewDefaultConfig(
+		v1.WithStoreRoot(config.GetDefault("pacman.reset_apps_root", "/var/sota/reset-apps")),
+		v1.WithComposeRoot(config.GetDefault("pacman.compose_apps_root", "/var/sota/compose-apps")),
+		v1.WithUpdateDB(path.Join(config.GetDefault("storage.path", "/var/sota"), "updates.db")),
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	cfg.StoreRoot = config.GetDefault("pacman.reset_apps_root", "/var/sota/reset-apps")
-	cfg.DBFilePath = path.Join(config.GetDefault("storage.path", "/var/sota"), "updates.db")
 	return cfg, nil
 }

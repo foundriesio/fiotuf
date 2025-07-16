@@ -1,22 +1,25 @@
 module github.com/foundriesio/fiotuf
 
-go 1.23.0
+go 1.24
 
-toolchain go1.24.2
+toolchain go1.24.4
 
 replace github.com/foundriesio/fioconfig => github.com/detsch/fioconfig v0.0.0-20250402193550-1f600a09de79
 
 replace github.com/theupdateframework/go-tuf/v2 v2.0.2 => github.com/foundriesio/go-tuf/v2 v2.0.2-fio
 
-replace github.com/foundriesio/composeapp => github.com/foundriesio/composeapp v0.0.0-20250512142514-31854a4c8505
+replace github.com/foundriesio/composeapp => github.com/foundriesio/composeapp v0.0.0-20250711135618-f7eb89afdc47
 
 require (
+	github.com/foundriesio/composeapp v0.0.0-20250711135618-f7eb89afdc47
 	github.com/foundriesio/fioconfig v0.0.0-20250106172201-285bf31bb6a3
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-logr/stdr v1.2.2
 	github.com/google/uuid v1.6.0
+	github.com/schollz/progressbar/v3 v3.18.0
 	github.com/theupdateframework/go-tuf/v2 v2.0.2
 	github.com/urfave/cli/v2 v2.27.2
+	modernc.org/sqlite v1.37.0
 )
 
 require (
@@ -45,7 +48,6 @@ require (
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
-	github.com/foundriesio/composeapp v0.0.0-20250423135331-48cfb2ca0822 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-logr/logr v1.3.0 // indirect
@@ -91,7 +93,6 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/schollz/progressbar/v3 v3.18.0 // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.9.0 // indirect
 	github.com/sigstore/sigstore v1.8.4 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
@@ -126,5 +127,4 @@ require (
 	modernc.org/libc v1.62.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.9.1 // indirect
-	modernc.org/sqlite v1.37.0 // indirect
 )

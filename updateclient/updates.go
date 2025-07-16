@@ -130,14 +130,14 @@ func PullTarget(updateContext *UpdateContext) error {
 
 	// Progress bar
 	if invokeComposeUpdate {
-		bar := progressbar.DefaultBytes(updateStatus.TotalBlobDownloadSize)
-		fetchOptions := []update.FetchOption{
-			update.WithFetchProgress(func(status *update.FetchProgress) {
-				if err := bar.Set64(status.Current); err != nil {
+		bar := progressbar.DefaultBytes(updateStatus.TotalBlobsBytes)
+		fetchOptions := []compose.FetchOption{
+			compose.WithFetchProgress(func(status *compose.FetchProgress) {
+				if err := bar.Set64(status.CurrentBytes); err != nil {
 					log.Printf("Error setting progress bar: %s\n", err.Error())
 				}
 			}),
-			update.WithProgressPollInterval(200)}
+			compose.WithProgressPollInterval(200)}
 
 		err = updateContext.Runner.Fetch(updateContext.Context, fetchOptions...)
 		if err != nil {
@@ -434,13 +434,18 @@ func IsTargetRunning(updateContext *UpdateContext) (bool, error) {
 	// }
 	if isSublist(updateContext.InstalledApps, updateContext.RequiredApps) {
 		log.Println("Installed applications match selected target apps")
-		err := compose.CheckRunning(updateContext.Context, updateContext.ComposeConfig, updateContext.RequiredApps)
+		status, err := compose.CheckAppsStatus(updateContext.Context, updateContext.ComposeConfig, updateContext.RequiredApps)
 		if err != nil {
-			log.Println("Required applications are not running", err)
-			return false, nil
-		} else {
+			log.Println("Error checking apps status", err)
+			return false, err
+		}
+
+		if status.AreRunning() {
 			log.Println("Required applications are are running")
 			return true, nil
+		} else {
+			log.Println("Required applications are not running", err)
+			return false, nil
 		}
 	} else {
 		log.Println("Installed applications list do not contain all target apps")
