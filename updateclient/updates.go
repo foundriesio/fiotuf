@@ -299,7 +299,6 @@ func StartTarget(updateContext *UpdateContext) (bool, error) {
 	}
 
 	compose.StopApps(updateContext.Context, updateContext.ComposeConfig, updateContext.AppsToUninstall)
-	// StopAndRemoveApps(updateContext) // No need to uninstall explicitly if CompleteWithPruning() is in use when completing
 
 	if invokeComposeUpdate {
 		err = updateContext.Runner.Start(updateContext.Context)
@@ -333,10 +332,13 @@ func StartTarget(updateContext *UpdateContext) (bool, error) {
 	targets.RegisterInstallationSuceeded(updateContext.DbFilePath, updateContext.Target, updateContext.CorrelationId)
 
 	if invokeComposeUpdate {
+		log.Println("Completing update with pruning")
 		err = updateContext.Runner.Complete(updateContext.Context, update.CompleteWithPruning())
 		if err != nil {
 			log.Println("error completing update:", err)
 		}
+	} else {
+		StopAndRemoveApps(updateContext)
 	}
 
 	return false, nil
@@ -432,6 +434,11 @@ func IsTargetRunning(updateContext *UpdateContext) (bool, error) {
 	// 	log.Println("error getting last update", err)
 	// 	return false, err
 	// }
+	if len(updateContext.RequiredApps) == 0 {
+		log.Println("No required apps to check")
+		return true, nil
+	}
+
 	if isSublist(updateContext.InstalledApps, updateContext.RequiredApps) {
 		log.Println("Installed applications match selected target apps")
 		status, err := compose.CheckAppsStatus(updateContext.Context, updateContext.ComposeConfig, updateContext.RequiredApps)
@@ -444,7 +451,7 @@ func IsTargetRunning(updateContext *UpdateContext) (bool, error) {
 			log.Println("Required applications are are running")
 			return true, nil
 		} else {
-			log.Println("Required applications are not running", err)
+			log.Println("Required applications are not running: ", status.NotRunningApps)
 			return false, nil
 		}
 	} else {

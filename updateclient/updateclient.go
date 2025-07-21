@@ -366,6 +366,11 @@ func FillAndCheckAppsList(updateContext *UpdateContext) error {
 		log.Println("Target is running")
 		updateContext.Target = nil
 		updateContext.RequiredApps = nil
+		if len(updateContext.AppsToUninstall) == 0 {
+			log.Println("No apps to uninstall")
+		} else {
+			log.Println("Apps to uninstall:", updateContext.AppsToUninstall)
+		}
 	}
 	return nil
 }
@@ -604,7 +609,7 @@ func getInstalledApps(updateContext *UpdateContext) ([]string, error) {
 	}
 	for _, app := range apps {
 		if app.Name() != "" {
-			ret = append(ret, app.Name())
+			ret = append(ret, app.Ref().Spec.Locator+"@"+app.Ref().Digest.String())
 		}
 	}
 	return ret, nil
