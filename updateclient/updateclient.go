@@ -16,6 +16,7 @@ import (
 	"github.com/foundriesio/fiotuf/events"
 	"github.com/foundriesio/fiotuf/targets"
 	"github.com/foundriesio/fiotuf/tuf"
+	"github.com/spf13/cobra"
 	"github.com/theupdateframework/go-tuf/v2/metadata"
 
 	"github.com/foundriesio/composeapp/pkg/compose"
@@ -99,6 +100,10 @@ func InitializeDatabase(dbFilePath string) error {
 
 	// TODO: When using aklite as docker credentials agent, additional tables are required: version and tls_creds
 	return nil
+}
+
+func doUpdateClient(cmd *cobra.Command, args []string) {
+	RunUpdateClient(srcDir, configPaths)
 }
 
 // Runs check + update (if needed) once. May become a loop in the future

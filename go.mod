@@ -11,14 +11,16 @@ replace github.com/theupdateframework/go-tuf/v2 v2.0.2 => github.com/foundriesio
 replace github.com/foundriesio/composeapp => github.com/foundriesio/composeapp v0.0.0-20250711135618-f7eb89afdc47
 
 require (
+	github.com/docker/distribution v2.8.2+incompatible
 	github.com/foundriesio/composeapp v0.0.0-20250711135618-f7eb89afdc47
 	github.com/foundriesio/fioconfig v0.0.0-20250106172201-285bf31bb6a3
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-logr/stdr v1.2.2
 	github.com/google/uuid v1.6.0
 	github.com/schollz/progressbar/v3 v3.18.0
+	github.com/spf13/cobra v1.9.1
 	github.com/theupdateframework/go-tuf/v2 v2.0.2
-	github.com/urfave/cli/v2 v2.27.2
+	gopkg.in/ini.v1 v1.67.0
 	modernc.org/sqlite v1.37.0
 )
 
@@ -37,10 +39,8 @@ require (
 	github.com/compose-spec/compose-go v1.20.2 // indirect
 	github.com/containerd/containerd v1.7.15 // indirect
 	github.com/containerd/log v0.1.0 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/cli v25.0.3+incompatible // indirect
-	github.com/docker/distribution v2.8.2+incompatible // indirect
 	github.com/docker/docker v25.0.3+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.7.0 // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
@@ -60,6 +60,7 @@ require (
 	github.com/google/go-containerregistry v0.19.1 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.4 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
@@ -92,10 +93,10 @@ require (
 	github.com/prometheus/procfs v0.11.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.9.0 // indirect
 	github.com/sigstore/sigstore v1.8.4 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
+	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/thales-e-security/pool v0.0.2 // indirect
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
@@ -103,7 +104,6 @@ require (
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
-	github.com/xrash/smetrics v0.0.0-20240312152122-5f08fbb34913 // indirect
 	go.etcd.io/bbolt v1.3.7 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.46.1 // indirect
 	go.opentelemetry.io/otel v1.21.0 // indirect
@@ -118,6 +118,7 @@ require (
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/term v0.32.0 // indirect
 	golang.org/x/text v0.25.0 // indirect
+	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.31.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230822172742-b8732ec3820d // indirect
 	google.golang.org/grpc v1.59.0 // indirect

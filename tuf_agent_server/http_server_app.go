@@ -1,4 +1,4 @@
-package internal
+package tuf_agent_server
 
 import (
 	"fmt"
@@ -19,8 +19,6 @@ var (
 const (
 	httpPort int = 9080 // TODO: make configurable
 )
-
-var Commit string
 
 func getTargetsHttp(c *gin.Context) {
 	// ret := []string{}
