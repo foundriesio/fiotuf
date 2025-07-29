@@ -106,6 +106,73 @@ func doUpdateClient(cmd *cobra.Command, args []string) {
 	RunUpdateClient(srcDir, configPaths)
 }
 
+func getTargetsTuf(config *sotatoml.AppConfig, localRepoPath string, client *http.Client) (map[string]*metadata.TargetFiles, error) {
+	fiotuf, err := tuf.NewFioTuf(config, client)
+	if err != nil {
+		log.Println("Error creating fiotuf instance", err)
+		return nil, err
+	}
+
+	err = fiotuf.RefreshTuf(localRepoPath)
+	if err != nil {
+		log.Println("Error refreshing TUF", err)
+		return nil, err
+	}
+
+	tufTargets := fiotuf.GetTargets()
+	return tufTargets, nil
+}
+
+func fetchTargetsJson(config *sotatoml.AppConfig, client *http.Client) ([]byte, error) {
+	urlPath := config.GetDefault("tls.server", "https://ota-lite.foundries.io:8443") + "/repo/targets.json"
+	headers := make(map[string]string)
+	headers["x-ats-tags"] = config.Get("pacman.tags")
+	res, err := transport.HttpGet(client, urlPath, headers)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code %d from %s", res.StatusCode, urlPath)
+	}
+	return res.Body, nil
+}
+
+func getTargetsUnsafe(config *sotatoml.AppConfig, localRepoPath string, client *http.Client) (map[string]*metadata.TargetFiles, error) {
+	var targetsBytes []byte
+	var err error
+	if localRepoPath == "" {
+		targetsBytes, err = fetchTargetsJson(config, client)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching targets.json: %v", err)
+		}
+	} else {
+		filePath := path.Join(localRepoPath, "repo", "targets.json")
+		targetsBytes, err = os.ReadFile(filePath)
+		if err != nil {
+			return nil, fmt.Errorf("error reading targets.json from %s: %v", filePath, err)
+		}
+	}
+
+	meta, err := metadata.Targets().FromBytes(targetsBytes)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing targets.json: %v", err)
+	}
+	targets := meta.Signed.Targets
+
+	return targets, nil
+
+}
+
+func getTargets(config *sotatoml.AppConfig, localRepoPath string, client *http.Client) (map[string]*metadata.TargetFiles, error) {
+	if noTuf {
+		return getTargetsUnsafe(config, localRepoPath, client)
+	} else {
+		return getTargetsTuf(config, localRepoPath, client)
+	}
+}
+
 // Runs check + update (if needed) once. May become a loop in the future
 func RunUpdateClient(srcDir string, cfgDirs []string) error {
 	var configPaths []string
@@ -129,26 +196,21 @@ func RunUpdateClient(srcDir string, cfgDirs []string) error {
 		return err
 	}
 
-	client := transport.CreateClient(config)
-	fiotuf, err := tuf.NewFioTuf(config, client)
-	if err != nil {
-		log.Println("Error creating fiotuf instance", err)
-		return err
-	}
-
 	var localRepoPath string
 	if srcDir == "" {
 		localRepoPath = ""
 	} else {
 		localRepoPath = path.Join(srcDir, "repo")
 	}
-	err = fiotuf.RefreshTuf(localRepoPath)
+
+	client := transport.CreateClient(config)
+
+	tufTargets, err := getTargets(config, localRepoPath, client)
 	if err != nil {
-		log.Println("Error refreshing TUF", err)
+		log.Println("Error getting targets", err)
 		return err
 	}
 
-	tufTargets := fiotuf.GetTargets()
 	err = GetTargetToInstall(updateContext, config, tufTargets)
 	if err != nil {
 		return fmt.Errorf("error getting target to install %v", err)
