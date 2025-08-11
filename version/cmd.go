@@ -1,7 +1,7 @@
 package version
 
 import (
-	"log"
+	"fmt"
 
 	"github.com/spf13/cobra"
 )
@@ -13,7 +13,7 @@ func NewCommand() *cobra.Command {
 		Use:   "version",
 		Short: "Display version of this command",
 		Run: func(cmd *cobra.Command, args []string) {
-			log.Println(Commit)
+			fmt.Println(Commit)
 		},
 	}
 	return cmd

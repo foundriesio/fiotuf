@@ -3,7 +3,7 @@ TAGS:=${FIOTUF_TAGS}
 COMMIT:=$(shell git log -1 --pretty=format:%h)$(shell git diff --quiet || echo '_')
 
 # Use linker flags to provide commit info
-LDFLAGS=-ldflags "-X=github.com/foundriesio/fiotuf/internal.Commit=$(COMMIT)"
+LDFLAGS=-ldflags "-X=github.com/foundriesio/fiotuf/version.Commit=$(COMMIT)"
 
 TARGETS=bin/fiotuf-linux-amd64 bin/fiotuf-linux-arm
 
@@ -19,9 +19,7 @@ bin/fiotuf-%: FORCE
 	CGO_ENABLED=0 \
 	GOOS=$(shell echo $* | cut -f1 -d\- ) \
 	GOARCH=$(shell echo $* | cut -f2 -d\-) \
-		go build -o $@ -tags disable_pkcs11 main.go
-
-# go build -tags vpn $(LDFLAGS) -o $@ main.go
+		go build $(LDFLAGS) -o $@ -tags disable_pkcs11 main.go
 
 FORCE:
 
